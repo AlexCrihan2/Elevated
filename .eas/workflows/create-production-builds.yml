@@ -1,0 +1,24 @@
+name: build-production
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "app/**"
+      - "components/**"
+      - "services/**"
+      - "constants/**"
+      - "hooks/**"
+      - "types/**"
+      - "package.json"
+      - "app.json"
+      - "eas.json"
+
+jobs:
+  build:
+    name: Production Build
+    steps:
+      - checkout
+      - install_node_modules
+      - run:
+          name: Build for all platforms
+          command: eas build --platform all --profile production --non-interactive
