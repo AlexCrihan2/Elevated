@@ -36,14 +36,6 @@ import LanguageSelector, { LanguageSelectorButton } from '@/components/ui/Langua
 
 const { width } = Dimensions.get('window');
 
-interface QuickAction {
-  id: string;
-  icon: string;
-  label: string;
-  color: string;
-  onPress: () => void;
-}
-
 interface Post {
   id: string;
   user: {
@@ -133,50 +125,14 @@ export default function HomeScreen() {
   const [showAIDebugDashboard, setShowAIDebugDashboard] = useState(false);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
   
-  // Quick Actions with proper onPress handlers
-  const quickActions: QuickAction[] = [
-    { 
-      id: '1', 
-      icon: 'photo-camera', 
-      label: 'Photo', 
-      color: '#FF6B6B',
-      onPress: () => Alert.alert('Photo', 'Open camera for photo')
-    },
-    { 
-      id: '2', 
-      icon: 'videocam', 
-      label: 'Video', 
-      color: '#4ECDC4',
-      onPress: () => Alert.alert('Video', 'Start video recording')
-    },
-    { 
-      id: '3', 
-      icon: 'mic', 
-      label: 'Audio', 
-      color: '#45B7D1',
-      onPress: () => Alert.alert('Audio', 'Record audio message')
-    },
-    { 
-      id: '4', 
-      icon: 'location-on', 
-      label: 'Check In', 
-      color: '#96CEB4',
-      onPress: () => Alert.alert('Check In', 'Share your location')
-    },
-    { 
-      id: '5', 
-      icon: 'poll', 
-      label: 'Poll', 
-      color: '#FFEAA7',
-      onPress: () => Alert.alert('Poll', 'Create a poll')
-    },
-    { 
-      id: '6', 
-      icon: 'event', 
-      label: 'Event', 
-      color: '#DDA0DD',
-      onPress: () => Alert.alert('Event', 'Create an event')
-    },
+  // AI Livestreams data
+  const aiLivestreams = [
+    { id: 'ls1', title: 'AI & Future Tech Summit', host: 'TechWorld', viewers: 12400, category: 'Technology', emoji: '🤖', color: '#3B82F6', isLive: true },
+    { id: 'ls2', title: 'Mindfulness & Mental Health', host: 'Dr. Chen', viewers: 8900, category: 'Health', emoji: '🧘', color: '#10B981', isLive: true },
+    { id: 'ls3', title: 'Champions League Match', host: 'Sports Live', viewers: 45200, category: 'Sports', emoji: '⚽', color: '#EF4444', isLive: true },
+    { id: 'ls4', title: 'Startup Pitch Night', host: 'VentureHub', viewers: 3400, category: 'Business', emoji: '🚀', color: '#8B5CF6', isLive: true },
+    { id: 'ls5', title: 'Global Climate Conference', host: 'EcoNews', viewers: 19800, category: 'Science', emoji: '🌍', color: '#06B6D4', isLive: true },
+    { id: 'ls6', title: 'Cooking Masterclass', host: 'Chef Marco', viewers: 5600, category: 'Food', emoji: '👨‍🍳', color: '#F97316', isLive: true },
   ];
 
   // Quick Actions with proper onPress handlers
@@ -611,24 +567,51 @@ Shared from Social App`;
             </TouchableOpacity>
           </View>
           
-          {/* Quick Actions */}
-          <View style={styles.quickActionsContainer}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {quickActions.map((action) => (
-                <TouchableOpacity 
-                  key={action.id} 
-                  style={[styles.quickAction, { backgroundColor: action.color }]}
-                  onPress={action.onPress}
-                >
-                  <MaterialIcons name={action.icon as any} size={18} color="white" />
-                  <Text style={styles.quickActionText}>{action.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
+    
         </View>
 
-        {/* Popular Content Categories */}
+        {/* AI-Powered Livestreams Section */}
+        <View style={[styles.liveSection, { backgroundColor: theme.colors.surface }]}>
+          <View style={styles.liveSectionHeader}>
+            <View style={styles.liveSectionTitleRow}>
+              <View style={styles.liveRedDot} />
+              <Text style={[styles.liveSectionTitle, { color: theme.colors.text }]}>AI-Curated Livestreams</Text>
+            </View>
+            <TouchableOpacity onPress={() => Alert.alert('All Streams', 'Browse all live streams')}>
+              <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>See All</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {aiLivestreams.map((stream) => (
+              <TouchableOpacity
+                key={stream.id}
+                style={[styles.liveCard, { backgroundColor: stream.color + '15', borderColor: stream.color + '40' }]}
+                onPress={() => Alert.alert('Join Live', `Joining: ${stream.title}`)}
+              >
+                <View style={[styles.liveCardTop, { backgroundColor: stream.color }]}>
+                  <Text style={styles.liveCardEmoji}>{stream.emoji}</Text>
+                  <View style={styles.liveBadge}>
+                    <View style={styles.livePulseDot} />
+                    <Text style={styles.liveBadgeText}>LIVE</Text>
+                  </View>
+                </View>
+                <View style={styles.liveCardBody}>
+                  <Text style={[styles.liveCardTitle, { color: theme.colors.text }]} numberOfLines={2}>{stream.title}</Text>
+                  <Text style={[styles.liveCardHost, { color: theme.colors.textSecondary }]}>{stream.host}</Text>
+                  <View style={styles.liveCardFooter}>
+                    <MaterialIcons name="visibility" size={12} color={stream.color} />
+                    <Text style={[styles.liveViewers, { color: stream.color }]}>{(stream.viewers / 1000).toFixed(1)}K</Text>
+                    <View style={[styles.liveCategoryChip, { backgroundColor: stream.color + '20' }]}>
+                      <Text style={[styles.liveCategoryText, { color: stream.color }]}>{stream.category}</Text>
+                    </View>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+      {/* Popular Content Categories */}
         <View style={[styles.categoriesSection, { backgroundColor: theme.colors.surface }]}>
           <View style={styles.sectionHeaderRow}>
             <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Popular by Category</Text>
@@ -884,6 +867,9 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   filterTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -941,21 +927,108 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontSize: 16,
   },
-  quickActionsContainer: {
-    marginTop: 8,
+  // AI Livestreams
+  liveSection: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  quickAction: {
+  liveSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  liveSectionTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 16,
-    marginRight: 10,
-    gap: 6,
+    gap: 8,
   },
-  quickActionText: {
+  liveRedDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#EF4444',
+  },
+  liveSectionTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  liveCard: {
+    width: 150,
+    borderRadius: 14,
+    marginRight: 12,
+    borderWidth: 1.5,
+    overflow: 'hidden',
+  },
+  liveCardTop: {
+    height: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  liveCardEmoji: {
+    fontSize: 32,
+  },
+  liveBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    gap: 3,
+  },
+  livePulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#EF4444',
+  },
+  liveBadgeText: {
     color: 'white',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  liveCardBody: {
+    padding: 10,
+  },
+  liveCardTitle: {
     fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 3,
+    lineHeight: 16,
+  },
+  liveCardHost: {
+    fontSize: 10,
+    marginBottom: 6,
+  },
+  liveCardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  liveViewers: {
+    fontSize: 10,
+    fontWeight: '700',
+    flex: 1,
+  },
+  liveCategoryChip: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  liveCategoryText: {
+    fontSize: 8,
     fontWeight: '600',
   },
   

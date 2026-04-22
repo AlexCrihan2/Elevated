@@ -6,7 +6,9 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
+import { Image } from 'expo-image';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay, FadeIn } from 'react-native-reanimated';
+import * as ImagePicker from 'expo-image-picker';
 
 const { width } = Dimensions.get('window');
 
@@ -200,6 +202,41 @@ export default function TagsScreen() {
   const [tags] = useState<Tag[]>(POPULAR_TAGS);
   const [newTagName, setNewTagName] = useState('');
   const [newTagColor, setNewTagColor] = useState('#0EA5E9');
+  const [newTagPhoto, setNewTagPhoto] = useState<string | null>(null);
+  const [followedTags, setFollowedTags] = useState<Set<string>>(new Set());
+
+  const handlePickTagPhoto = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission needed', 'Please allow photo access to add a tag photo.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]) {
+        setNewTagPhoto(result.assets[0].uri);
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Could not open photo picker.');
+    }
+  };
+
+  const handleFollowTag = (tag: Tag) => {
+    const newFollowed = new Set(followedTags);
+    if (newFollowed.has(tag.id)) {
+      newFollowed.delete(tag.id);
+      Alert.alert('Unfollowed', `You unfollowed #${tag.name}`);
+    } else {
+      newFollowed.add(tag.id);
+      Alert.alert('Following!', `Now following #${tag.name}. Posts from this tag will appear in your feed.`);
+    }
+    setFollowedTags(newFollowed);
+  };
 
   const headerAnim = useSharedValue(0);
   const tagsAnim = useSharedValue(0);
@@ -229,103 +266,99 @@ export default function TagsScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
+    setTimeout(() => setRefreshing(false), 1000);
   };
 
   const handleCreateTag = () => {
     if (!newTagName.trim()) { Alert.alert('Error', 'Please enter a tag name'); return; }
+    const name = newTagName;
     setNewTagName('');
+    setNewTagPhoto(null);
     setShowCreateModal(false);
-    Alert.alert('Tag Created!', `Your tag "#${newTagName}" is ready to use!`);
+    Alert.alert('Tag Created!', `Your tag "#${name}" has been created${newTagPhoto ? ' with photo' : ''} and is ready to use!`);
   };
 
-  const renderTag = ({ item, index }: { item: Tag; index: number }) => (
-    <Animated.View entering={FadeIn.delay(index * 50).duration(300)}>
-      <TouchableOpacity
-        style={[styles.tagCard, { backgroundColor: isDark ? '#1E293B' : '#FFFFFF', borderColor: isDark ? '#334155' : '#E2E8F0' }]}
-        onPress={() => setShowTagDetails(item)}
-        activeOpacity={0.85}
-      >
-        {/* Tag header with color accent */}
-        <View style={[styles.tagAccentBar, { backgroundColor: item.color }]} />
-        <View style={styles.tagCardInner}>
-          {/* Top Row */}
-          <View style={styles.tagTopRow}>
-            <View style={styles.tagNameRow}>
-              <Text style={[styles.tagName, { color: item.color }]}>#{item.name}</Text>
-              {item.trending && (
-                <LinearGradient colors={['#EF4444', '#F97316']} style={styles.trendingBadge}>
-                  <MaterialIcons name="local-fire-department" size={10} color="#FFF" />
-                  <Text style={styles.trendingBadgeText}>Trending</Text>
-                </LinearGradient>
-              )}
-            </View>
-            <View style={styles.tagCountWrap}>
-              <Text style={[styles.tagCount, { color: isDark ? '#94A3B8' : '#6B7280' }]}>{item.count.toLocaleString()} posts</Text>
-              {item.weeklyGrowth && (
-                <Text style={styles.tagGrowth}>{item.weeklyGrowth} this week</Text>
-              )}
-            </View>
-          </View>
-
-          {/* Description */}
-          <Text style={[styles.tagDescription, { color: isDark ? '#CBD5E1' : '#374151' }]}>{item.description}</Text>
-          {item.longDescription && (
-            <Text style={[styles.tagLongDesc, { color: isDark ? '#94A3B8' : '#6B7280' }]} numberOfLines={2}>{item.longDescription}</Text>
-          )}
-
-          {/* Related Tags */}
-          {item.relatedTags && (
-            <View style={styles.relatedTagsRow}>
-              {item.relatedTags.slice(0, 4).map((rt, i) => (
-                <View key={i} style={[styles.relatedTagChip, { backgroundColor: item.color + '18', borderColor: item.color + '40' }]}>
-                  <Text style={[styles.relatedTagText, { color: item.color }]}>#{rt}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Contributors */}
-          {item.topContributors && item.topContributors.length > 0 && (
-            <View style={styles.contributorsSection}>
-              <Text style={[styles.contributorsLabel, { color: isDark ? '#94A3B8' : '#6B7280' }]}>Top contributors</Text>
-              <View style={styles.contributorsRow}>
-                {item.topContributors.slice(0, 5).map((person, i) => (
-                  <View key={i} style={[styles.contributorAvatar, { backgroundColor: item.color + '20', marginLeft: i > 0 ? -8 : 0, zIndex: 5 - i }]}>
-                    <Text style={styles.contributorEmoji}>{person.avatar}</Text>
-                    {person.verified && (
-                      <View style={styles.contributorVerifiedDot}>
-                        <MaterialIcons name="verified" size={8} color="#1DA1F2" />
-                      </View>
-                    )}
-                  </View>
-                ))}
-                {item.topContributors.length > 5 && (
-                  <View style={[styles.contributorMore, { backgroundColor: item.color }]}>
-                    <Text style={styles.contributorMoreText}>+{item.topContributors.length - 5}</Text>
-                  </View>
+  const renderTag = ({ item, index }: { item: Tag; index: number }) => {
+    const isFollowed = followedTags.has(item.id);
+    return (
+      <Animated.View entering={FadeIn.delay(index * 50).duration(300)}>
+        <TouchableOpacity
+          style={[styles.tagCard, { backgroundColor: isDark ? '#1E293B' : '#FFFFFF', borderColor: isDark ? '#334155' : '#E2E8F0' }]}
+          onPress={() => setShowTagDetails(item)}
+          activeOpacity={0.85}
+        >
+          <View style={[styles.tagAccentBar, { backgroundColor: item.color }]} />
+          <View style={styles.tagCardInner}>
+            <View style={styles.tagTopRow}>
+              <View style={styles.tagNameRow}>
+                <Text style={[styles.tagName, { color: item.color }]}>#{item.name}</Text>
+                {item.trending && (
+                  <LinearGradient colors={['#EF4444', '#F97316']} style={styles.trendingBadge}>
+                    <MaterialIcons name="local-fire-department" size={10} color="#FFF" />
+                    <Text style={styles.trendingBadgeText}>Trending</Text>
+                  </LinearGradient>
                 )}
               </View>
+              <View style={styles.tagCountWrap}>
+                <Text style={[styles.tagCount, { color: isDark ? '#94A3B8' : '#6B7280' }]}>{item.count.toLocaleString()} posts</Text>
+                {item.weeklyGrowth && <Text style={styles.tagGrowth}>{item.weeklyGrowth} this week</Text>}
+              </View>
             </View>
-          )}
 
-          {/* Footer */}
-          <View style={styles.tagFooterRow}>
-            <TouchableOpacity style={[styles.followTagBtn, { borderColor: item.color }]} onPress={() => Alert.alert('Following', `Now following #${item.name}`)}>
-              <MaterialIcons name="add" size={14} color={item.color} />
-              <Text style={[styles.followTagText, { color: item.color }]}>Follow</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.viewTagBtn} onPress={() => setShowTagDetails(item)}>
-              <Text style={[styles.viewTagText, { color: isDark ? '#94A3B8' : '#6B7280' }]}>View posts</Text>
-              <MaterialIcons name="arrow-forward-ios" size={11} color={isDark ? '#94A3B8' : '#6B7280'} />
-            </TouchableOpacity>
+            <Text style={[styles.tagDescription, { color: isDark ? '#CBD5E1' : '#374151' }]}>{item.description}</Text>
+            {item.longDescription && (
+              <Text style={[styles.tagLongDesc, { color: isDark ? '#94A3B8' : '#6B7280' }]} numberOfLines={2}>{item.longDescription}</Text>
+            )}
+
+            {item.relatedTags && (
+              <View style={styles.relatedTagsRow}>
+                {item.relatedTags.slice(0, 4).map((rt, i) => (
+                  <View key={i} style={[styles.relatedTagChip, { backgroundColor: item.color + '18', borderColor: item.color + '40' }]}>
+                    <Text style={[styles.relatedTagText, { color: item.color }]}>#{rt}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {item.topContributors && item.topContributors.length > 0 && (
+              <View style={styles.contributorsSection}>
+                <Text style={[styles.contributorsLabel, { color: isDark ? '#94A3B8' : '#6B7280' }]}>Top contributors</Text>
+                <View style={styles.contributorsRow}>
+                  {item.topContributors.slice(0, 5).map((person, i) => (
+                    <View key={i} style={[styles.contributorAvatar, { backgroundColor: item.color + '20', marginLeft: i > 0 ? -8 : 0, zIndex: 5 - i }]}>
+                      <Text style={styles.contributorEmoji}>{person.avatar}</Text>
+                      {person.verified && <View style={styles.contributorVerifiedDot}><MaterialIcons name="verified" size={8} color="#1DA1F2" /></View>}
+                    </View>
+                  ))}
+                  {item.topContributors.length > 5 && (
+                    <View style={[styles.contributorMore, { backgroundColor: item.color }]}>
+                      <Text style={styles.contributorMoreText}>+{item.topContributors.length - 5}</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            )}
+
+            <View style={styles.tagFooterRow}>
+              <TouchableOpacity
+                style={[styles.followTagBtn, { borderColor: item.color, backgroundColor: isFollowed ? item.color : 'transparent' }]}
+                onPress={() => handleFollowTag(item)}
+              >
+                <MaterialIcons name={isFollowed ? 'check' : 'add'} size={14} color={isFollowed ? '#FFFFFF' : item.color} />
+                <Text style={[styles.followTagText, { color: isFollowed ? '#FFFFFF' : item.color }]}>
+                  {isFollowed ? 'Following' : 'Follow'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.viewTagBtn} onPress={() => setShowTagDetails(item)}>
+                <Text style={[styles.viewTagText, { color: isDark ? '#94A3B8' : '#6B7280' }]}>View posts</Text>
+                <MaterialIcons name="arrow-forward-ios" size={11} color={isDark ? '#94A3B8' : '#6B7280'} />
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
-  );
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  };
 
   const renderTagPost = ({ item }: { item: TagPost }) => (
     <TouchableOpacity style={[styles.tagPostCard, { backgroundColor: isDark ? '#1E293B' : '#FFFFFF', borderColor: isDark ? '#334155' : '#E2E8F0' }]}>
@@ -338,25 +371,15 @@ export default function TagsScreen() {
         <Text style={[styles.tagPostTime, { color: isDark ? '#64748B' : '#9CA3AF' }]}>{item.timestamp}</Text>
       </View>
       <View style={styles.tagPostEngagement}>
-        <View style={styles.engagementItem}>
-          <MaterialIcons name="favorite" size={13} color="#EF4444" />
-          <Text style={styles.engagementText}>{item.engagement.likes.toLocaleString()}</Text>
-        </View>
-        <View style={styles.engagementItem}>
-          <MaterialIcons name="chat-bubble" size={13} color="#0EA5E9" />
-          <Text style={styles.engagementText}>{item.engagement.comments.toLocaleString()}</Text>
-        </View>
-        <View style={styles.engagementItem}>
-          <MaterialIcons name="share" size={13} color="#10B981" />
-          <Text style={styles.engagementText}>{item.engagement.shares.toLocaleString()}</Text>
-        </View>
+        <View style={styles.engagementItem}><MaterialIcons name="favorite" size={13} color="#EF4444" /><Text style={styles.engagementText}>{item.engagement.likes.toLocaleString()}</Text></View>
+        <View style={styles.engagementItem}><MaterialIcons name="chat-bubble" size={13} color="#0EA5E9" /><Text style={styles.engagementText}>{item.engagement.comments.toLocaleString()}</Text></View>
+        <View style={styles.engagementItem}><MaterialIcons name="share" size={13} color="#10B981" /><Text style={styles.engagementText}>{item.engagement.shares.toLocaleString()}</Text></View>
       </View>
     </TouchableOpacity>
   );
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#0F172A' : '#F0F9FF' }]}>
-      {/* Header */}
       <Animated.View style={[headerAnimatedStyle]}>
         <LinearGradient colors={['#0EA5E9', '#0284C7', '#0369A1']} style={[styles.header, { paddingTop: insets.top + 8 }]}>
           <View style={styles.headerInner}>
@@ -376,7 +399,6 @@ export default function TagsScreen() {
         </LinearGradient>
       </Animated.View>
 
-      {/* Search */}
       <View style={[styles.searchContainer, { backgroundColor: isDark ? '#1E293B' : '#FFFFFF', borderColor: isDark ? '#334155' : '#BAE6FD' }]}>
         <MaterialIcons name="search" size={20} color="#0EA5E9" />
         <TextInput
@@ -393,12 +415,11 @@ export default function TagsScreen() {
         )}
       </View>
 
-      {/* Trending Tags */}
       {trendingTags.length > 0 && (
         <View style={[styles.trendingSection, { backgroundColor: isDark ? '#1E293B' : '#FFFFFF', borderColor: isDark ? '#334155' : '#BAE6FD' }]}>
           <View style={styles.trendingHeader}>
             <MaterialIcons name="local-fire-department" size={16} color="#EF4444" />
-            <Text style={[styles.trendingTitle, { color: isDark ? '#F1F5F9' : '#0F172A' }]}>🔥 Trending Now</Text>
+            <Text style={[styles.trendingTitle, { color: isDark ? '#F1F5F9' : '#0F172A' }]}>Trending Now</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trendingScroll}>
             {trendingTags.map((tag) => (
@@ -415,16 +436,12 @@ export default function TagsScreen() {
         </View>
       )}
 
-      {/* Categories */}
       <View style={[styles.categoriesBar, { backgroundColor: isDark ? '#1E293B' : '#FFFFFF', borderColor: isDark ? '#334155' : '#BAE6FD' }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesScroll}>
           {CATEGORIES.map((cat) => (
             <TouchableOpacity
               key={cat.id}
-              style={[
-                styles.categoryChip,
-                { backgroundColor: selectedCategory === cat.id ? cat.color : (isDark ? '#0F172A' : '#F0F9FF'), borderColor: selectedCategory === cat.id ? cat.color : (isDark ? '#334155' : '#BAE6FD') }
-              ]}
+              style={[styles.categoryChip, { backgroundColor: selectedCategory === cat.id ? cat.color : (isDark ? '#0F172A' : '#F0F9FF'), borderColor: selectedCategory === cat.id ? cat.color : (isDark ? '#334155' : '#BAE6FD') }]}
               onPress={() => setSelectedCategory(cat.id)}
             >
               <MaterialIcons name={cat.icon as any} size={13} color={selectedCategory === cat.id ? '#FFFFFF' : cat.color} />
@@ -434,7 +451,6 @@ export default function TagsScreen() {
         </ScrollView>
       </View>
 
-      {/* Tags List */}
       <Animated.View style={[styles.tagsContainer, tagsAnimatedStyle]}>
         <FlatList
           data={filteredTags}
@@ -457,11 +473,11 @@ export default function TagsScreen() {
         />
       </Animated.View>
 
-      {/* Create Modal */}
+      {/* Create Modal with Photo Upload */}
       <Modal visible={showCreateModal} animationType="slide" presentationStyle="pageSheet">
         <View style={[styles.modalContainer, { backgroundColor: isDark ? '#0F172A' : '#F0F9FF' }]}>
           <LinearGradient colors={['#0EA5E9', '#0284C7']} style={styles.modalHeaderGradient}>
-            <TouchableOpacity onPress={() => setShowCreateModal(false)}>
+            <TouchableOpacity onPress={() => { setShowCreateModal(false); setNewTagPhoto(null); }}>
               <MaterialIcons name="close" size={24} color="#FFFFFF" />
             </TouchableOpacity>
             <Text style={styles.modalTitleText}>Create New Tag</Text>
@@ -469,8 +485,27 @@ export default function TagsScreen() {
               <Text style={styles.modalSaveBtn}>Create</Text>
             </TouchableOpacity>
           </LinearGradient>
-          <View style={styles.modalBody}>
-            <Text style={[styles.inputLabel, { color: isDark ? '#CBD5E1' : '#374151' }]}>Tag Name</Text>
+          <ScrollView style={styles.modalBody}>
+            {/* Photo Upload */}
+            <Text style={[styles.inputLabel, { color: isDark ? '#CBD5E1' : '#374151' }]}>Tag Photo (Optional)</Text>
+            <TouchableOpacity style={[styles.photoUploadBox, { borderColor: newTagColor, backgroundColor: isDark ? '#1E293B' : '#FFFFFF' }]} onPress={handlePickTagPhoto}>
+              {newTagPhoto ? (
+                <Image source={{ uri: newTagPhoto }} style={styles.tagPhotoPreview} contentFit="cover" />
+              ) : (
+                <View style={styles.photoUploadPlaceholder}>
+                  <MaterialIcons name="add-photo-alternate" size={36} color={newTagColor} />
+                  <Text style={[styles.photoUploadText, { color: newTagColor }]}>Tap to add photo</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            {newTagPhoto && (
+              <TouchableOpacity style={styles.removePhotoBtn} onPress={() => setNewTagPhoto(null)}>
+                <MaterialIcons name="close" size={14} color="#EF4444" />
+                <Text style={styles.removePhotoText}>Remove photo</Text>
+              </TouchableOpacity>
+            )}
+
+            <Text style={[styles.inputLabel, { color: isDark ? '#CBD5E1' : '#374151', marginTop: 16 }]}>Tag Name *</Text>
             <TextInput
               style={[styles.textInput, { backgroundColor: isDark ? '#1E293B' : '#FFFFFF', color: isDark ? '#F1F5F9' : '#1F2937', borderColor: '#0EA5E9' }]}
               placeholder="Enter tag name..."
@@ -479,6 +514,7 @@ export default function TagsScreen() {
               onChangeText={setNewTagName}
               maxLength={30}
             />
+
             <Text style={[styles.inputLabel, { color: isDark ? '#CBD5E1' : '#374151', marginTop: 16 }]}>Color</Text>
             <View style={styles.colorRow}>
               {['#0EA5E9', '#10B981', '#6366F1', '#EF4444', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4'].map((color) => (
@@ -491,13 +527,13 @@ export default function TagsScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-          </View>
+          </ScrollView>
         </View>
       </Modal>
 
       {/* Tag Details Modal */}
       <Modal visible={!!showTagDetails} animationType="slide" presentationStyle="pageSheet">
-        {showTagDetails && (
+        {showTagDetails ? (
           <View style={[styles.detailsContainer, { backgroundColor: isDark ? '#0F172A' : '#F0F9FF' }]}>
             <LinearGradient colors={[showTagDetails.color, showTagDetails.color + 'CC']} style={[styles.detailsHeader, { paddingTop: insets.top + 8 }]}>
               <TouchableOpacity style={styles.detailsCloseBtn} onPress={() => setShowTagDetails(null)}>
@@ -507,20 +543,21 @@ export default function TagsScreen() {
                 <Text style={styles.detailsTagName}>#{showTagDetails.name}</Text>
                 <Text style={styles.detailsTagCount}>{showTagDetails.count.toLocaleString()} posts · {showTagDetails.weeklyGrowth} this week</Text>
               </View>
-              <TouchableOpacity style={styles.detailsFollowBtn} onPress={() => Alert.alert('Following', `Now following #${showTagDetails.name}`)}>
-                <MaterialIcons name="add" size={18} color="#FFFFFF" />
-                <Text style={styles.detailsFollowText}>Follow</Text>
+              <TouchableOpacity
+                style={[styles.detailsFollowBtn, followedTags.has(showTagDetails.id) && { backgroundColor: 'rgba(255,255,255,0.5)' }]}
+                onPress={() => handleFollowTag(showTagDetails)}
+              >
+                <MaterialIcons name={followedTags.has(showTagDetails.id) ? 'check' : 'add'} size={18} color="#FFFFFF" />
+                <Text style={styles.detailsFollowText}>{followedTags.has(showTagDetails.id) ? 'Following' : 'Follow'}</Text>
               </TouchableOpacity>
             </LinearGradient>
 
             <ScrollView style={styles.detailsScrollView} showsVerticalScrollIndicator={false}>
-              {/* Description */}
               <View style={[styles.detailsSection, { backgroundColor: isDark ? '#1E293B' : '#FFFFFF', borderColor: isDark ? '#334155' : '#BAE6FD' }]}>
                 <Text style={[styles.detailsSectionTitle, { color: showTagDetails.color }]}>About this tag</Text>
                 <Text style={[styles.detailsDescription, { color: isDark ? '#CBD5E1' : '#374151' }]}>{showTagDetails.longDescription}</Text>
               </View>
 
-              {/* Related Tags */}
               {showTagDetails.relatedTags && (
                 <View style={[styles.detailsSection, { backgroundColor: isDark ? '#1E293B' : '#FFFFFF', borderColor: isDark ? '#334155' : '#BAE6FD' }]}>
                   <Text style={[styles.detailsSectionTitle, { color: showTagDetails.color }]}>Related tags</Text>
@@ -534,7 +571,6 @@ export default function TagsScreen() {
                 </View>
               )}
 
-              {/* Top Contributors */}
               {showTagDetails.topContributors && (
                 <View style={[styles.detailsSection, { backgroundColor: isDark ? '#1E293B' : '#FFFFFF', borderColor: isDark ? '#334155' : '#BAE6FD' }]}>
                   <Text style={[styles.detailsSectionTitle, { color: showTagDetails.color }]}>Top contributors ({showTagDetails.topContributors.length})</Text>
@@ -556,8 +592,7 @@ export default function TagsScreen() {
                 </View>
               )}
 
-              {/* Posts */}
-              <View style={[styles.detailsSection, { backgroundColor: isDark ? '#1E293B' : '#FFFFFF', borderColor: isDark ? '#334155' : '#BAE6FD' }]}>
+              <View style={[styles.detailsSection, { backgroundColor: isDark ? '#1E293B' : '#FFFFFF', borderColor: isDark ? '#334155' : '#BAE6FD', marginBottom: 100 }]}>
                 <Text style={[styles.detailsSectionTitle, { color: showTagDetails.color }]}>Recent posts ({showTagDetails.posts.length})</Text>
                 <FlatList
                   data={showTagDetails.posts}
@@ -569,7 +604,7 @@ export default function TagsScreen() {
               </View>
             </ScrollView>
           </View>
-        )}
+        ) : null}
       </Modal>
     </View>
   );
@@ -577,8 +612,6 @@ export default function TagsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-
-  // Header
   header: { paddingHorizontal: 16, paddingBottom: 16 },
   headerInner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerTitle: { fontSize: 26, fontWeight: '800', color: '#FFFFFF' },
@@ -586,11 +619,9 @@ const styles = StyleSheet.create({
   headerActions: { flexDirection: 'row', gap: 8 },
   headerBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
 
-  // Search
   searchContainer: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 12, marginVertical: 8, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1.5, gap: 10, shadowColor: '#0EA5E9', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 },
   searchInput: { flex: 1, fontSize: 15 },
 
-  // Trending
   trendingSection: { marginHorizontal: 12, marginVertical: 6, borderRadius: 14, padding: 12, borderWidth: 1.5, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3, elevation: 2 },
   trendingHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
   trendingTitle: { fontSize: 15, fontWeight: '700' },
@@ -599,20 +630,16 @@ const styles = StyleSheet.create({
   trendingChipName: { fontSize: 13, fontWeight: '700', marginBottom: 1 },
   trendingChipCount: { fontSize: 10, fontWeight: '500' },
 
-  // Categories
   categoriesBar: { marginHorizontal: 12, marginVertical: 6, borderRadius: 14, borderWidth: 1.5, paddingVertical: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3, elevation: 2 },
   categoriesScroll: { paddingHorizontal: 12, gap: 6 },
   categoryChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, borderWidth: 1.5, gap: 4 },
   categoryChipText: { fontSize: 11, fontWeight: '600' },
 
-  // Tags
   tagsContainer: { flex: 1 },
   tagsList: { paddingHorizontal: 12, paddingVertical: 8, paddingBottom: 100 },
-
   tagCard: { borderRadius: 16, marginBottom: 10, borderWidth: 1.5, overflow: 'hidden', shadowColor: '#0EA5E9', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6, elevation: 3 },
   tagAccentBar: { height: 4 },
   tagCardInner: { padding: 14 },
-
   tagTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
   tagNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
   tagName: { fontSize: 17, fontWeight: '800' },
@@ -621,14 +648,11 @@ const styles = StyleSheet.create({
   tagCountWrap: { alignItems: 'flex-end' },
   tagCount: { fontSize: 12, fontWeight: '600' },
   tagGrowth: { fontSize: 10, color: '#10B981', fontWeight: '600' },
-
   tagDescription: { fontSize: 14, fontWeight: '600', marginBottom: 4, lineHeight: 20 },
   tagLongDesc: { fontSize: 12, lineHeight: 17, marginBottom: 10 },
-
   relatedTagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
   relatedTagChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, borderWidth: 1 },
   relatedTagText: { fontSize: 10, fontWeight: '600' },
-
   contributorsSection: { marginBottom: 10 },
   contributorsLabel: { fontSize: 11, fontWeight: '600', marginBottom: 6 },
   contributorsRow: { flexDirection: 'row', alignItems: 'center' },
@@ -637,33 +661,37 @@ const styles = StyleSheet.create({
   contributorVerifiedDot: { position: 'absolute', bottom: -2, right: -2 },
   contributorMore: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', marginLeft: -8 },
   contributorMoreText: { fontSize: 9, fontWeight: '700', color: '#FFFFFF' },
-
   tagFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
   followTagBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, borderWidth: 1.5, gap: 4 },
   followTagText: { fontSize: 12, fontWeight: '700' },
   viewTagBtn: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   viewTagText: { fontSize: 12, fontWeight: '500' },
 
-  // Empty
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
   emptyTitle: { fontSize: 18, fontWeight: '700', marginTop: 12, marginBottom: 6 },
   emptySubtitle: { fontSize: 13, textAlign: 'center', marginBottom: 20 },
   createTagBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0EA5E9', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, gap: 6 },
   createTagBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
 
-  // Create Modal
   modalContainer: { flex: 1 },
   modalHeaderGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 16, paddingTop: 56 },
   modalTitleText: { fontSize: 18, fontWeight: '700', color: '#FFFFFF' },
   modalSaveBtn: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
-  modalBody: { padding: 16 },
+  modalBody: { flex: 1, padding: 16 },
   inputLabel: { fontSize: 14, fontWeight: '600', marginBottom: 8 },
   textInput: { borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16 },
   colorRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
   colorDot: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   colorDotSelected: { borderWidth: 3, borderColor: '#FFFFFF', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 },
 
-  // Details Modal
+  // Photo Upload
+  photoUploadBox: { height: 120, borderRadius: 14, borderWidth: 2, borderStyle: 'dashed', overflow: 'hidden', marginBottom: 8, alignItems: 'center', justifyContent: 'center' },
+  photoUploadPlaceholder: { alignItems: 'center', justifyContent: 'center', gap: 8 },
+  photoUploadText: { fontSize: 13, fontWeight: '600' },
+  tagPhotoPreview: { width: '100%', height: '100%' },
+  removePhotoBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8 },
+  removePhotoText: { fontSize: 12, color: '#EF4444', fontWeight: '600' },
+
   detailsContainer: { flex: 1 },
   detailsHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16, gap: 12 },
   detailsCloseBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
@@ -679,7 +707,6 @@ const styles = StyleSheet.create({
   relatedTagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   relatedTagBig: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, borderWidth: 1.5 },
   relatedTagBigText: { fontSize: 13, fontWeight: '700' },
-
   contributorRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1 },
   contributorAvatarLarge: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   contributorEmojiLarge: { fontSize: 22 },
@@ -688,7 +715,6 @@ const styles = StyleSheet.create({
   contributorName: { fontSize: 14, fontWeight: '700' },
   contributorRole: { fontSize: 12, marginTop: 1 },
   contributorFollowers: { fontSize: 13, fontWeight: '700' },
-
   tagPostCard: { borderRadius: 12, padding: 12, borderWidth: 1 },
   tagPostTitle: { fontSize: 14, fontWeight: '600', lineHeight: 20, marginBottom: 8 },
   tagPostMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   View, 
@@ -26,6 +27,61 @@ interface CommentsModalProps {
   post: Post;
   onUserPress?: (user: any) => void;
 }
+
+// GIF categories for search
+const GIF_CATEGORIES = ['Reaction', 'Happy', 'Sad', 'Love', 'Funny', 'Excited', 'Cool', 'Fire'];
+
+// Simulated GIF data (emoji-based for offline support)
+const GIF_DATA: { [key: string]: { id: string; emoji: string; label: string }[] } = {
+  Reaction: [
+    { id: 'r1', emoji: '😂😂', label: 'LOL' }, { id: 'r2', emoji: '😱😱', label: 'OMG' },
+    { id: 'r3', emoji: '🤔🤔', label: 'Thinking' }, { id: 'r4', emoji: '👏👏', label: 'Clapping' },
+    { id: 'r5', emoji: '🙏🙏', label: 'Pray' }, { id: 'r6', emoji: '😎😎', label: 'Cool' },
+    { id: 'r7', emoji: '😭😭', label: 'Crying' }, { id: 'r8', emoji: '🤩🤩', label: 'Star Eyes' },
+  ],
+  Happy: [
+    { id: 'h1', emoji: '🎉🎉', label: 'Party' }, { id: 'h2', emoji: '😀😀', label: 'Happy' },
+    { id: 'h3', emoji: '❤️❤️', label: 'Love' }, { id: 'h4', emoji: '🎈🎈', label: 'Balloon' },
+    { id: 'h5', emoji: '😜😜', label: 'Wink' }, { id: 'h6', emoji: '🥳🥳', label: 'Celebrate' },
+    { id: 'h7', emoji: '😄😄', label: 'Smile' }, { id: 'h8', emoji: '🌟🌟', label: 'Stars' },
+  ],
+  Sad: [
+    { id: 's1', emoji: '😢😢', label: 'Crying' }, { id: 's2', emoji: '😭😭', label: 'Sob' },
+    { id: 's3', emoji: '😞😞', label: 'Disappointed' }, { id: 's4', emoji: '😔😔', label: 'Sad' },
+    { id: 's5', emoji: '😪😪', label: 'Sleepy' }, { id: 's6', emoji: '🥺🥺', label: 'Pout' },
+    { id: 's7', emoji: '🙈🙈', label: 'No See' }, { id: 's8', emoji: '💔💔', label: 'Broken Heart' },
+  ],
+  Love: [
+    { id: 'l1', emoji: '❤️❤️', label: 'Red Heart' }, { id: 'l2', emoji: '😘😘', label: 'Kiss' },
+    { id: 'l3', emoji: '💏💏', label: 'Kiss Mark' }, { id: 'l4', emoji: '🥰🥰', label: 'Smiling Hearts' },
+    { id: 'l5', emoji: '💖💖', label: 'Sparkling Heart' }, { id: 'l6', emoji: '💞💞', label: 'Revolving Hearts' },
+    { id: 'l7', emoji: '💝💝', label: 'Heart Ribbon' }, { id: 'l8', emoji: '💘💘', label: 'Cupid Heart' },
+  ],
+  Funny: [
+    { id: 'f1', emoji: '🤣🤣', label: 'Rolling Laughing' }, { id: 'f2', emoji: '😝😝', label: 'Tongue Out' },
+    { id: 'f3', emoji: '🤪🤪', label: 'Zany' }, { id: 'f4', emoji: '💩💩', label: 'Poop' },
+    { id: 'f5', emoji: '😹😹', label: 'Grinning Cat' }, { id: 'f6', emoji: '🤡🤡', label: 'Clown' },
+    { id: 'f7', emoji: '👻👻', label: 'Ghost' }, { id: 'f8', emoji: '🕹️🕹️', label: 'Puppet' },
+  ],
+  Excited: [
+    { id: 'e1', emoji: '🤩🤩', label: 'Star Struck' }, { id: 'e2', emoji: '😱😱', label: 'Screaming' },
+    { id: 'e3', emoji: '🎀🎀', label: 'Ribbon' }, { id: 'e4', emoji: '⚡⚡', label: 'Lightning' },
+    { id: 'e5', emoji: '🚀🚀', label: 'Rocket' }, { id: 'e6', emoji: '💥💥', label: 'Boom' },
+    { id: 'e7', emoji: '🔥🔥', label: 'Fire' }, { id: 'e8', emoji: '🌟🌟', label: 'Glowing Star' },
+  ],
+  Cool: [
+    { id: 'c1', emoji: '😎😎', label: 'Sunglasses' }, { id: 'c2', emoji: '🖤🖤', label: 'Black Heart' },
+    { id: 'c3', emoji: '🥶🥶', label: 'Cold Face' }, { id: 'c4', emoji: '👑👑', label: 'Crown' },
+    { id: 'c5', emoji: '💯💯', label: '100' }, { id: 'c6', emoji: '✨✨', label: 'Sparkles' },
+    { id: 'c7', emoji: '💪💪', label: 'Muscle' }, { id: 'c8', emoji: '💎💎', label: 'Diamond' },
+  ],
+  Fire: [
+    { id: 'fi1', emoji: '🔥🔥', label: 'Fire' }, { id: 'fi2', emoji: '💥💥', label: 'Explosion' },
+    { id: 'fi3', emoji: '⚡⚡', label: 'Bolt' }, { id: 'fi4', emoji: '🌶️🌶️', label: 'Hot Pepper' },
+    { id: 'fi5', emoji: '🥵🥵', label: 'Hot Face' }, { id: 'fi6', emoji: '😡😡', label: 'Rage' },
+    { id: 'fi7', emoji: '💣💣', label: 'Bomb' }, { id: 'fi8', emoji: '⭐⭐', label: 'Star' },
+  ],
+};
 
 // Emoji data
 const emojiCategories = [
@@ -70,6 +126,9 @@ export default function CommentsModal({ visible, onClose, post, onUserPress }: C
   const [isPosting, setIsPosting] = useState(false);
   const [replyTo, setReplyTo] = useState<Comment | null>(null);
   const [postComments, setPostComments] = useState<Comment[]>([]);
+  const [showGifPicker, setShowGifPicker] = useState(false);
+  const [gifSearch, setGifSearch] = useState('');
+  const [selectedGifCategory, setSelectedGifCategory] = useState('Reaction');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const [selectedEmojiCategory, setSelectedEmojiCategory] = useState(0);
@@ -178,6 +237,59 @@ export default function CommentsModal({ visible, onClose, post, onUserPress }: C
     setReplyTo(comment);
     setNewComment(`@${comment.user.username} `);
   };
+
+  const handleGifSelect = (gif: { id: string; emoji: string; label: string }) => {
+    setNewComment(prev => prev + gif.emoji + ' ');
+    setShowGifPicker(false);
+  };
+
+  const getFilteredGifs = () => {
+    const categoryGifs = GIF_DATA[selectedGifCategory] || GIF_DATA['Reaction'];
+    if (!gifSearch.trim()) return categoryGifs;
+    return categoryGifs.filter(g => g.label.toLowerCase().includes(gifSearch.toLowerCase()));
+  };
+
+  const renderGifPicker = () => (
+    <View style={styles.gifPickerContainer}>
+      <View style={styles.gifSearchRow}>
+        <MaterialIcons name="search" size={16} color="#9CA3AF" />
+        <TextInput
+          style={styles.gifSearchInput}
+          placeholder="Search GIFs..."
+          placeholderTextColor="#6B7280"
+          value={gifSearch}
+          onChangeText={setGifSearch}
+        />
+        {gifSearch.length > 0 && (
+          <TouchableOpacity onPress={() => setGifSearch('')}>
+            <MaterialIcons name="close" size={14} color="#9CA3AF" />
+          </TouchableOpacity>
+        )}
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.gifCategories}>
+        {GIF_CATEGORIES.map((cat) => (
+          <TouchableOpacity
+            key={cat}
+            style={[styles.gifCategoryChip, selectedGifCategory === cat && styles.gifCategoryChipActive]}
+            onPress={() => { setSelectedGifCategory(cat); setGifSearch(''); }}
+          >
+            <Text style={[styles.gifCategoryText, selectedGifCategory === cat && styles.gifCategoryTextActive]}>{cat}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+      <View style={styles.gifGrid}>
+        {getFilteredGifs().map((gif) => (
+          <TouchableOpacity key={gif.id} style={styles.gifItem} onPress={() => handleGifSelect(gif)}>
+            <Text style={styles.gifEmoji}>{gif.emoji}</Text>
+            <Text style={styles.gifLabel}>{gif.label}</Text>
+          </TouchableOpacity>
+        ))}
+        {getFilteredGifs().length === 0 && (
+          <Text style={styles.gifNoResults}>No GIFs found for "{gifSearch}"</Text>
+        )}
+      </View>
+    </View>
+  );
 
   const handleEmojiSelect = (emoji: string) => {
     setNewComment(prev => prev + emoji);
@@ -418,6 +530,7 @@ export default function CommentsModal({ visible, onClose, post, onUserPress }: C
         {/* Emoji/Sticker Picker */}
         {showEmojiPicker && renderEmojiPicker()}
         {showStickerPicker && renderStickerPicker()}
+        {showGifPicker && renderGifPicker()}
 
         {/* Reply Context */}
         {replyTo && (
@@ -451,6 +564,7 @@ export default function CommentsModal({ visible, onClose, post, onUserPress }: C
               onPress={() => {
                 setShowEmojiPicker(!showEmojiPicker);
                 setShowStickerPicker(false);
+                setShowGifPicker(false); // Close GIF picker when opening emoji
               }}
             >
               <MaterialIcons name="emoji-emotions" size={20} color={showEmojiPicker ? "#3B82F6" : "#9CA3AF"} />
@@ -461,6 +575,7 @@ export default function CommentsModal({ visible, onClose, post, onUserPress }: C
               onPress={() => {
                 setShowStickerPicker(!showStickerPicker);
                 setShowEmojiPicker(false);
+                setShowGifPicker(false); // Close GIF picker when opening sticker
               }}
             >
               <MaterialIcons name="face-retouching-natural" size={20} color={showStickerPicker ? "#3B82F6" : "#9CA3AF"} />
@@ -474,10 +589,14 @@ export default function CommentsModal({ visible, onClose, post, onUserPress }: C
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={styles.inputControlButton}
-              onPress={() => showAlert('GIF', 'GIF support coming soon!')}
+              style={[styles.inputControlButton, showGifPicker && styles.inputControlButtonActive]}
+              onPress={() => {
+                setShowGifPicker(!showGifPicker);
+                setShowEmojiPicker(false);
+                setShowStickerPicker(false);
+              }}
             >
-              <Text style={styles.gifText}>GIF</Text>
+              <Text style={[styles.gifText, showGifPicker && { color: '#10B981' }]}>GIF</Text>
             </TouchableOpacity>
           </View>
           
@@ -829,8 +948,81 @@ const styles = StyleSheet.create({
     fontSize: 28,
   },
   
-  // Input Container Styles
-  inputContainer: {
+  gifPickerContainer: {
+    backgroundColor: '#1F2937',
+    borderTopWidth: 1,
+    borderTopColor: '#374151',
+    maxHeight: 220,
+    padding: 10,
+  },
+  gifSearchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#374151',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 8,
+    gap: 6,
+  },
+  gifSearchInput: {
+    flex: 1,
+    color: 'white',
+    fontSize: 13,
+  },
+  gifCategories: {
+    marginBottom: 8,
+    flexGrow: 0,
+  },
+  gifCategoryChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: '#374151',
+    marginRight: 6,
+  },
+  gifCategoryChipActive: {
+    backgroundColor: '#10B981',
+  },
+  gifCategoryText: {
+    color: '#9CA3AF',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  gifCategoryTextActive: {
+    color: 'white',
+  },
+  gifGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  gifItem: {
+    width: 70,
+    height: 60,
+    backgroundColor: '#374151',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 4,
+  },
+  gifEmoji: {
+    fontSize: 22,
+  },
+  gifLabel: {
+    color: '#9CA3AF',
+    fontSize: 8,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  gifNoResults: {
+    color: '#6B7280',
+    fontSize: 12,
+    textAlign: 'center',
+    padding: 20,
+    width: '100%',
+  },
+  inputContainer: { // This style was duplicated and needed to be properly scoped
     backgroundColor: '#1F2937',
     borderTopWidth: 1,
     borderTopColor: '#374151',

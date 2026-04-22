@@ -4,10 +4,10 @@
     "slug": "onspace-platform",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo.png",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/images/logo.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -20,7 +20,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/logo.png",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.onspace.platform",
@@ -38,7 +38,7 @@
       ]
     },
     "web": {
-      "favicon": "./assets/images/favicon.ico",
+      "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
     "plugins": [
@@ -60,7 +60,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/logo.png",
+          "icon": "./assets/notification-icon.png",
           "color": "#ffffff",
           "defaultChannel": "default"
         }
@@ -83,11 +83,6 @@
     "experiments": {
       "typedRoutes": true
     },
-    "scheme": "onspace",
-    "extra": {
-      "eas": {
-        "projectId": "891ec94c-be98-4d25-926a-7509bc52d2b1"
-      }
-    }
+    "scheme": "onspace"
   }
 }

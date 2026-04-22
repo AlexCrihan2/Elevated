@@ -67,36 +67,42 @@ class AIDebugService {
 
   // Initialize real-time monitoring
   private initializeMonitoring() {
-    // Monitor JavaScript errors
-    if (typeof window !== 'undefined') {
-      window.addEventListener('error', (event) => {
-        this.captureError({
-          type: 'error',
-          severity: 'high',
-          source: 'JavaScript Runtime',
-          description: `${event.error?.name || 'Error'}: ${event.error?.message || 'Unknown error'}`,
-          stackTrace: event.error?.stack,
-          context: {
-            filename: event.filename,
-            lineno: event.lineno,
-            colno: event.colno
-          }
+    // Only use browser APIs on web platform - avoid crashes on React Native/Hermes
+    try {
+      if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+        window.addEventListener('error', (event: any) => {
+          try {
+            this.captureError({
+              type: 'error',
+              severity: 'high',
+              source: 'JavaScript Runtime',
+              description: `${event.error?.name || 'Error'}: ${event.error?.message || 'Unknown error'}`,
+              stackTrace: event.error?.stack,
+              context: {
+                filename: event.filename,
+                lineno: event.lineno,
+                colno: event.colno
+              }
+            });
+          } catch (_) {}
         });
-      });
 
-      // Monitor unhandled promise rejections
-      window.addEventListener('unhandledrejection', (event) => {
-        this.captureError({
-          type: 'error',
-          severity: 'high',
-          source: 'Promise Rejection',
-          description: `Unhandled Promise Rejection: ${event.reason}`,
-          context: { reason: event.reason }
+        window.addEventListener('unhandledrejection', (event: any) => {
+          try {
+            this.captureError({
+              type: 'error',
+              severity: 'high',
+              source: 'Promise Rejection',
+              description: `Unhandled Promise Rejection: ${String(event.reason)}`,
+              context: { reason: String(event.reason) }
+            });
+          } catch (_) {}
         });
-      });
 
-      // Monitor performance
-      this.startPerformanceMonitoring();
+        this.startPerformanceMonitoring();
+      }
+    } catch (_) {
+      // Silent fail - monitoring not critical for app function
     }
 
     // Start system health checks
@@ -318,23 +324,27 @@ class AIDebugService {
 
   // Performance monitoring
   private startPerformanceMonitoring(): void {
-    if (typeof window !== 'undefined' && 'PerformanceObserver' in window) {
-      // Monitor long tasks
-      const observer = new PerformanceObserver((list) => {
-        list.getEntries().forEach((entry) => {
-          if (entry.duration > 50) { // Tasks longer than 50ms
-            this.captureError({
-              type: 'performance',
-              severity: 'medium',
-              source: 'Performance Monitor',
-              description: `Long task detected: ${entry.duration}ms`,
-              context: { entry }
+    try {
+      if (typeof window !== 'undefined' && 'PerformanceObserver' in window && typeof (window as any).PerformanceObserver === 'function') {
+        const observer = new (window as any).PerformanceObserver((list: any) => {
+          try {
+            list.getEntries().forEach((entry: any) => {
+              if (entry.duration > 50) {
+                this.captureError({
+                  type: 'performance',
+                  severity: 'medium',
+                  source: 'Performance Monitor',
+                  description: `Long task detected: ${entry.duration}ms`,
+                  context: { duration: entry.duration }
+                });
+              }
             });
-          }
+          } catch (_) {}
         });
-      });
-
-      observer.observe({ entryTypes: ['longtask'] });
+        observer.observe({ entryTypes: ['longtask'] });
+      }
+    } catch (_) {
+      // PerformanceObserver not available on this platform
     }
   }
 
